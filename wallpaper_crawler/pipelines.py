@@ -17,6 +17,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
+import time
 import pycurl
 from io import BytesIO
 
@@ -150,7 +151,17 @@ class PyCurlImagePipeline:
         for image_url in item.get('image_urls', []):
             if not image_url:
                 continue
+            for _ in range(5):
+                try:
+                    self.download(image_url, spider)
+                except Exception as e:
+                    print(f'[retry]download error: {e}')
+                    time.sleep(5)
+                    continue
+                break
+        return item
 
+    def download(self, image_url, spider):
             # 创建一个 BytesIO 对象来保存下载的数据
             buffer = BytesIO()
 
@@ -175,10 +186,9 @@ class PyCurlImagePipeline:
 
             if status_code == 200:
                 # 保存图片
-                image_path = f"/Users/sherlock/Project/wallpaper_crawler/test_wallpaper/{image_url.split('/')[-1]}"
+                image_path = f"/Users/sherlock/Project/wallpaper_crawler/iu_wallpaper/{image_url.split('/')[-1]}"
                 with open(image_path, 'wb') as f:
                     f.write(buffer.getvalue())
                 spider.log(f"Image saved at {image_path}")
-                return item
             else:
                 raise DropItem(f"Failed to download image: {image_url}, Status code: {status_code}")
