@@ -98,10 +98,10 @@ IMAGES_STORE = '/Users/sherlock/Project/wallpaper_crawler/test_wallpaper'  # 图
 
 # Enable and configure HTTP caching (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
-HTTPCACHE_ENABLED = True
-#HTTPCACHE_EXPIRATION_SECS = 0
+HTTPCACHE_ENABLED = False
+HTTPCACHE_EXPIRATION_SECS = 3600
 #HTTPCACHE_DIR = "httpcache"
-#HTTPCACHE_IGNORE_HTTP_CODES = []
+HTTPCACHE_IGNORE_HTTP_CODES = [403]
 #HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
 
 # Set settings whose default value is deprecated to a future-proof value
@@ -111,3 +111,9 @@ FEED_EXPORT_ENCODING = "utf-8"
 
 LOG_LEVEL = 'DEBUG'
 DOWNLOAD_TIMEOUT = 60  # 增大超时时间，单位为秒
+
+# 最大重试次数，默认是 2，可以根据需求调整
+RETRY_TIMES = 5
+
+# 间隔时间（单位：秒），控制连续重试的间隔，防止对服务器压力过大
+RETRY_WAIT_TIME = 5

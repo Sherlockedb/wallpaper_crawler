@@ -3,6 +3,8 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
+from wallpaper_crawler.request_manager import RequestManager, RequestPreiod
+import wallpaper_crawler.spiders.rare_gallery_setting as rare_gallery_setting
 
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
@@ -147,6 +149,9 @@ class SeleniumImagePipeline:
 
 class PyCurlImagePipeline:
 
+    def __init__(self):
+        self.request_manager = RequestManager(file_path=rare_gallery_setting.REQUEST_STORE)
+
     def process_item(self, item, spider):
         for image_url in item.get('image_urls', []):
             if not image_url:
@@ -186,9 +191,10 @@ class PyCurlImagePipeline:
 
             if status_code == 200:
                 # 保存图片
-                image_path = f"/Users/sherlock/Project/wallpaper_crawler/iu_wallpaper/{image_url.split('/')[-1]}"
+                image_path = f"{rare_gallery_setting.IMAGES_STORE}/{image_url.split('/')[-1]}"
                 with open(image_path, 'wb') as f:
                     f.write(buffer.getvalue())
                 spider.log(f"Image saved at {image_path}")
+                self.request_manager.done_url(RequestPreiod.IMAGE, image_url)
             else:
                 raise DropItem(f"Failed to download image: {image_url}, Status code: {status_code}")
