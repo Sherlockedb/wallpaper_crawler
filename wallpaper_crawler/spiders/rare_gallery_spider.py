@@ -1,6 +1,5 @@
 import scrapy
 from scrapy.selector import Selector
-from shutil import which
 from wallpaper_crawler.items import RareGalleryItem
 from wallpaper_crawler.request_manager import RequestManager, RequestPreiod
 import wallpaper_crawler.rare_gallery_setting as rare_gallery_setting
