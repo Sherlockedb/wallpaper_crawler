@@ -155,52 +155,14 @@ class PyCurlImagePipeline:
         self.request_manager = RequestManager(file_path=rare_gallery_setting.REQUEST_STORE)
 
     def process_item(self, item, spider):
-        print("===== process_item", item)
-        for image_url in item.get('image_urls', []):
-            if not image_url:
-                continue
-            for _ in range(5):
-                try:
-                    self.download(image_url, spider)
-                except Exception as e:
-                    print(f'[retry]download error: {e}')
-                    time.sleep(5)
-                    continue
-                break
-        return item
+        print("===== process_item")
 
-    def download(self, image_url, spider):
-            # 创建一个 BytesIO 对象来保存下载的数据
-            buffer = BytesIO()
-
-            # 创建 pycurl 对象
-            c = pycurl.Curl()
-            c.setopt(c.URL, image_url)  # 设置下载的 URL
-            c.setopt(c.WRITEDATA, buffer)  # 将数据写入 BytesIO 对象
-            c.setopt(c.FOLLOWLOCATION, True)  # 允许跟随重定向
-            c.setopt(c.USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36') # 设置 User-Agent，模拟 curl 请求
-
-            status_code = 0
-            try:
-                # 执行下载
-                c.perform()
-                # 获取 HTTP 状态码
-                status_code = c.getinfo(c.RESPONSE_CODE)
-            except pycurl.error as e:
-                print(f'An error occurred: {e}')
-            finally:
-                # 关闭 pycurl 对象
-                c.close()
-
-            if status_code == 200:
-                # 保存图片
-                image_path = f"{rare_gallery_setting.IMAGES_STORE}/{image_url.split('/')[-1]}"
-                with open(image_path, 'wb') as f:
-                    f.write(buffer.getvalue())
-                spider.log(f"Image saved at {image_path}")
-                self.request_manager.done_url(RequestPreiod.IMAGE, image_url)
-            else:
-                raise DropItem(f"Failed to download image: {image_url}, Status code: {status_code}")
+        image_url = item['image_src']
+        image_path = f"{rare_gallery_setting.IMAGES_STORE}/{image_url.split('/')[-1]}"
+        with open(image_path, 'wb') as f:
+            f.write(item['image'])
+        spider.log(f"Image saved at {image_path}")
+        self.request_manager.done_url(RequestPreiod.IMAGE, image_url)
 
 
 class SubProcCurlImagePipeline:

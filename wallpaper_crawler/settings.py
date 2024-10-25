@@ -64,9 +64,9 @@ SPIDER_MIDDLEWARES = {
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
-#DOWNLOADER_MIDDLEWARES = {
-#    "wallpaper_crawler.middlewares.WallpaperCrawlerDownloaderMiddleware": 543,
-#}
+DOWNLOADER_MIDDLEWARES = {
+    "wallpaper_crawler.middlewares.WallpaperCrawlerDownloaderMiddleware": 800,
+}
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
@@ -85,8 +85,6 @@ ITEM_PIPELINES = {
     # "wallpaper_crawler.pipelines.SubProcCurlImagePipeline": 300,
 }
 
-
-IMAGES_STORE = '/Users/sherlock/Project/wallpaper_crawler/test_wallpaper'  # 图片保存的文件夹
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html

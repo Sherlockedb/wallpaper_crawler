@@ -1,9 +1,7 @@
 import scrapy
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 from scrapy.selector import Selector
 from shutil import which
+from wallpaper_crawler.items import RareGalleryItem
 from wallpaper_crawler.request_manager import RequestManager, RequestPreiod
 import wallpaper_crawler.rare_gallery_setting as rare_gallery_setting
 
@@ -15,60 +13,34 @@ class RareGallerySpiderSpider(scrapy.Spider):
     def __init__(self, *args, **kwargs):
         super(scrapy.Spider, self).__init__(*args, **kwargs)
 
-        self.driver = self._init_driver()
         self.request_manager = RequestManager(file_path=rare_gallery_setting.REQUEST_STORE, start_urls=rare_gallery_setting.START_URLS)
-
-    def _init_driver(self):
-        service = Service(which('chromedriver'))
-        # 设置 Chrome 无头模式
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('User-Agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36')
-
-        # 启动 Chrome 浏览器
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-
-        # driver.set_script_timeout(5)  # 设置脚本执行超时为 10 秒
-        driver.set_page_load_timeout(5)
-
-        return driver
 
     # 定义 Scrapy 的起始请求
     def start_requests(self):
         for url in self.request_manager.get_urls_by_stage(RequestPreiod.INIT):
             # print(f"[start_requests] init {url}")
-            yield scrapy.Request(url=url, callback=self.parse_navigation)
+            yield scrapy.Request(url=url, callback=self.parse_navigation, meta={"preiod": RequestPreiod.INIT})
         for url in self.request_manager.get_urls_by_stage(RequestPreiod.NAVIGATION):
             # print(f"[start_requests] list {url}")
-            yield scrapy.Request(url=url, callback=self.parse_list)
+            yield scrapy.Request(url=url, callback=self.parse_list, meta={"preiod": RequestPreiod.NAVIGATION})
         for url in self.request_manager.get_urls_by_stage(RequestPreiod.DETAILS):
             # print(f"[start_requests] details {url}")
-            yield scrapy.Request(url=url, callback=self.parse_detail)
+            yield scrapy.Request(url=url, callback=self.parse_detail, meta={"preiod": RequestPreiod.DETAILS})
         for url in self.request_manager.get_urls_by_stage(RequestPreiod.IMAGE):
             # print(f"[start_requests] image {url}")
-            yield scrapy.Request(url=url, callback=self.parse_image)
+            yield scrapy.Request(url=url, callback=self.parse_image, meta={"preiod": RequestPreiod.IMAGE})
+
 
     def parse_navigation(self, response):
         page_list = [response.url]
-        # print(f"==== [parse_navigation] {response}")
-
-        try:
-            # 打开目标网站
-            self.driver.get(response.url)
-        except Exception as e:
-            pass
-
-        # 使用 Scrapy Selector 将 Selenium 获取的页面内容转为 Scrapy 可解析的格式
-        selenium_html = self.driver.page_source
-        sel = Selector(text=selenium_html)
+        sel = Selector(response)
         a_tags = sel.css('div.wrap div.wrap-main div.cols div.main div.sect div.sect-content div#dle-content div.bottom-nav div.pagi-nav div.navigation a')
-        # print("==== [parse_list] a_tags len", len(a_tags))
+        print("==== [parse_list] a_tags len", len(a_tags))
         if len(a_tags):
             last_tag = a_tags[-1]
             href = last_tag.css("::attr(href)").get()  # 获取href属性
             text = last_tag.css("::text").get()  # 获取标签文本
             max_page = int(text)
-
             # print(f"链接: {href}, 文本: {text} max_page: {max_page}")
 
             for page in range(2, max_page+1):
@@ -78,20 +50,11 @@ class RareGallerySpiderSpider(scrapy.Spider):
         self.request_manager.add_urls(RequestPreiod.NAVIGATION, page_list)
         self.request_manager.done_url(RequestPreiod.INIT, response.url)
         for url in page_list:
-            yield scrapy.Request(url=url, callback=self.parse_list)
+            yield scrapy.Request(url=url, callback=self.parse_list, meta={"preiod": RequestPreiod.NAVIGATION})
 
     def parse_list(self, response):
         # print(f"==== [parse_list] {response}")
-
-        try:
-            # 打开目标网站
-            self.driver.get(response.url)
-        except Exception as e:
-            pass
-
-        # 使用 Scrapy Selector 将 Selenium 获取的页面内容转为 Scrapy 可解析的格式
-        selenium_html = self.driver.page_source
-        sel = Selector(text=selenium_html)
+        sel = Selector(response)
         divs = sel.css('div.wrap div.wrap-main div.cols div.main div.sect div.sect-content div#dle-content div.th-item a.th-in')
         # print("==== [parse_list] divs len", len(divs))
 
@@ -106,20 +69,12 @@ class RareGallerySpiderSpider(scrapy.Spider):
         self.request_manager.add_urls(RequestPreiod.DETAILS, detail_urls)
         self.request_manager.done_url(RequestPreiod.NAVIGATION, response.url)
         for url in detail_urls:
-            yield scrapy.Request(url=url, callback=self.parse_detail)
+            yield scrapy.Request(url=url, callback=self.parse_detail, meta={"preiod": RequestPreiod.DETAILS})
 
 
     def parse_detail(self, response):
         # print(f"==== [parse_detail] {response}")
-        try:
-            # 打开目标网站
-            self.driver.get(response.url)
-        except Exception as e:
-            pass
-
-        # 使用 Scrapy Selector 将 Selenium 获取的页面内容转为 Scrapy 可解析的格式
-        selenium_html = self.driver.page_source
-        sel = Selector(text=selenium_html)
+        sel = Selector(response)
         divs = sel.css('div.wrap div.wrap-main div.cols div.main div.clearfix div#dle-content div.full-page div.vpm div.vpm-left div.ftabs input[value="OPEN"]')
         # print("==== [parse_detail] divs len", len(divs))
         # 遍历找到的 <input> 元素，获取其父级的 <a> 标签
@@ -131,12 +86,14 @@ class RareGallerySpiderSpider(scrapy.Spider):
 
         self.request_manager.add_urls(RequestPreiod.IMAGE, image_urls)
         self.request_manager.done_url(RequestPreiod.DETAILS, response.url)
-        yield {
-            'image_urls': image_urls,  # Scrapy Image Pipeline 需要这个格式
-        }
+        yield scrapy.Request(url=response.url, callback=self.parse_image, meta={"preiod": RequestPreiod.IMAGE})
 
     def parse_image(self, response):
-        # print(f"==== [parse_image] url {response.url}")
-        yield {
-            'image_urls': [response.url],  # Scrapy Image Pipeline 需要这个格式
-        }
+        print(f"==== [parse_image] url {response.url} {response.status}")
+        print(f"body", type(response.body))
+        if response.status != 200:
+            return
+        item = RareGalleryItem()
+        item['image_src'] = response.url
+        item['image'] = response.body
+        yield item

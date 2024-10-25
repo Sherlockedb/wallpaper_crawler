@@ -8,6 +8,20 @@ from scrapy import signals
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
 
+import time
+
+from shutil import which
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import TimeoutException
+
+from scrapy.http import HtmlResponse
+
+import pycurl
+from io import BytesIO
+
+from wallpaper_crawler.request_manager import RequestPreiod
 
 class WallpaperCrawlerSpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
@@ -68,6 +82,79 @@ class WallpaperCrawlerDownloaderMiddleware:
         crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         return s
 
+    def __init__(self):
+        self.driver = self._init_driver()
+
+    def _init_driver(self):
+        service = Service(which('chromedriver'))
+        # 设置 Chrome 无头模式
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('User-Agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36')
+
+        # 启动 Chrome 浏览器
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+
+        # driver.set_script_timeout(5)  # 设置脚本执行超时为 10 秒
+        driver.set_page_load_timeout(5)
+
+        return driver
+
+    def _download_html(self, request, spider, retry=0):
+        try:
+            # 打开目标网站
+            self.driver.get(request.url)
+        except TimeoutException:
+            pass
+        except Exception as e:
+            if retry:
+                time.sleep(5)
+                return self._download_html(request, spider, retry-1)
+            return HtmlResponse(url=request.url, body=str(e), status=0, encoding='utf-8')
+
+        # 返回新的响应对象
+        return HtmlResponse(
+            url=request.url,
+            body=self.driver.page_source,
+            status=200,
+            encoding='utf-8',
+            request=request
+        )
+
+    def _download_image(self, image_url, spider, retry=0):
+            # 创建一个 BytesIO 对象来保存下载的数据
+            buffer = BytesIO()
+
+            # 创建 pycurl 对象
+            c = pycurl.Curl()
+            c.setopt(c.URL, image_url)  # 设置下载的 URL
+            c.setopt(c.WRITEDATA, buffer)  # 将数据写入 BytesIO 对象
+            c.setopt(c.FOLLOWLOCATION, True)  # 允许跟随重定向
+            c.setopt(c.USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36') # 设置 User-Agent，模拟 curl 请求
+
+            status_code = 0
+            try:
+                # 执行下载
+                c.perform()
+                # 获取 HTTP 状态码
+                status_code = c.getinfo(c.RESPONSE_CODE)
+            except pycurl.error as e:
+                print(f'An error occurred: {e}')
+            finally:
+                # 关闭 pycurl 对象
+                c.close()
+
+            if status_code == 200:
+                spider.log(f"Success to download image: {image_url}, Status code: {status_code}")
+                response = HtmlResponse(url=image_url, body=buffer.getvalue(), status=200, encoding='utf-8')
+                return response
+            else:
+                spider.log(f"Failed to download image: {image_url}, Status code: {status_code}")
+                if retry:
+                    time.sleep(5)
+                    return self._download_image(image_url, spider, retry-1)
+                return HtmlResponse(url=image_url, body="", status=status_code, encoding='utf-8')
+
     def process_request(self, request, spider):
         # Called for each request that goes through the downloader
         # middleware.
@@ -78,7 +165,15 @@ class WallpaperCrawlerDownloaderMiddleware:
         # - or return a Request object
         # - or raise IgnoreRequest: process_exception() methods of
         #   installed downloader middleware will be called
-        return None
+
+        spider.logger.info(f"==== process_request {request}")
+        preiod = request.meta.get('preiod')
+        if preiod in [RequestPreiod.INIT, RequestPreiod.NAVIGATION, RequestPreiod.DETAILS]:
+            return self._download_html(request, spider, retry=5)
+        elif preiod in [RequestPreiod.IMAGE]:
+            return self._download_image(request.url, spider, retry=5)
+        else:
+            return
 
     def process_response(self, request, response, spider):
         # Called with the response returned from the downloader.

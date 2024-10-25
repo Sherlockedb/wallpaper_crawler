@@ -1,10 +1,10 @@
 from pathlib import Path
 
 START_URLS = [
-    "https://rare-gallery.com/xfsearch/alt/IU/"
+    "https://rare-gallery.com/xfsearch/alt/Girls+Generation/"
 ]
-REQUEST_STORE = '/Users/sherlock/Project/wallpaper_crawler/.request/iu_iph_wallpaper_request.json'  # 请求信息保存路径
-IMAGES_STORE = '/Users/sherlock/Project/wallpaper_crawler/iu_iph_wallpaper'  # 图片保存的文件夹
+REQUEST_STORE = '/Users/sherlock/Project/wallpaper_crawler/.request/snsd_wallpaper_request.json'  # 请求信息保存路径
+IMAGES_STORE = '/Users/sherlock/Project/wallpaper_crawler/snsd_wallpaper'  # 图片保存的文件夹
 
 
 def _check_dir(directory):
