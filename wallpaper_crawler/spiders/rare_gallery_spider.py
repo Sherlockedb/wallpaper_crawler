@@ -45,7 +45,7 @@ class RareGallerySpiderSpider(scrapy.Spider):
             for page in range(2, max_page+1):
                 page_url = f"{response.url}/page/{page}/"
                 page_list.append(page_url)
-        # self.logger.debug(f"page_list={page_list}")
+        self.logger.info(f"parse_navigation page_list_len={len(page_list)}")
         self.request_manager.add_urls(RequestPreiod.NAVIGATION, page_list)
         self.request_manager.done_url(RequestPreiod.INIT, response.url)
         for url in page_list:
@@ -65,6 +65,7 @@ class RareGallerySpiderSpider(scrapy.Spider):
             return
 
         # detail_urls = [detail_urls[0]] # for test
+        self.logger.info(f"parse_list detail_urls_len={len(detail_urls)}")
         self.request_manager.add_urls(RequestPreiod.DETAILS, detail_urls)
         self.request_manager.done_url(RequestPreiod.NAVIGATION, response.url)
         for url in detail_urls:
@@ -85,7 +86,8 @@ class RareGallerySpiderSpider(scrapy.Spider):
 
         self.request_manager.add_urls(RequestPreiod.IMAGE, image_urls)
         self.request_manager.done_url(RequestPreiod.DETAILS, response.url)
-        yield scrapy.Request(url=response.url, callback=self.parse_image, meta={"preiod": RequestPreiod.IMAGE})
+        for url in image_urls:
+            yield scrapy.Request(url=url, callback=self.parse_image, meta={"preiod": RequestPreiod.IMAGE})
 
     def parse_image(self, response):
         self.logger.debug(f"==== [parse_image] url {response.url} {response.status}")
