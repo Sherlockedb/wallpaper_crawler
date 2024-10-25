@@ -77,12 +77,7 @@ DOWNLOADER_MIDDLEWARES = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    # 'scrapy.pipelines.images.ImagesPipeline': 300,
-    # "wallpaper_crawler.pipelines.WallpaperCrawlerPipeline": 300,
-    # "wallpaper_crawler.pipelines.CustomImagePipeline": 300,
-    # "wallpaper_crawler.pipelines.SeleniumImagePipeline": 300,
     "wallpaper_crawler.pipelines.PyCurlImagePipeline": 800,
-    # "wallpaper_crawler.pipelines.SubProcCurlImagePipeline": 300,
 }
 
 
