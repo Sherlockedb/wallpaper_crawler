@@ -36,7 +36,7 @@ RANDOMIZE_DOWNLOAD_DELAY = True
 #COOKIES_ENABLED = False
 
 # Disable Telnet Console (enabled by default)
-#TELNETCONSOLE_ENABLED = False
+TELNETCONSOLE_ENABLED = False
 
 # Override the default request headers:
 # DEFAULT_REQUEST_HEADERS = {
@@ -54,9 +54,13 @@ DEFAULT_REQUEST_HEADERS = {
 
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-#SPIDER_MIDDLEWARES = {
+SPIDER_MIDDLEWARES = {
 #    "wallpaper_crawler.middlewares.WallpaperCrawlerSpiderMiddleware": 543,
-#}
+    'scrapy.spidermiddlewares.httperror.HttpErrorMiddleware': None,
+    'scrapy.spidermiddlewares.referer.RefererMiddleware': None,
+    'scrapy.spidermiddlewares.urllength.UrlLengthMiddleware': None,
+    'scrapy.spidermiddlewares.depth.DepthMiddleware': None
+}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
@@ -77,7 +81,8 @@ ITEM_PIPELINES = {
     # "wallpaper_crawler.pipelines.WallpaperCrawlerPipeline": 300,
     # "wallpaper_crawler.pipelines.CustomImagePipeline": 300,
     # "wallpaper_crawler.pipelines.SeleniumImagePipeline": 300,
-    "wallpaper_crawler.pipelines.PyCurlImagePipeline": 300,
+    "wallpaper_crawler.pipelines.PyCurlImagePipeline": 800,
+    # "wallpaper_crawler.pipelines.SubProcCurlImagePipeline": 300,
 }
 
 
@@ -105,15 +110,15 @@ HTTPCACHE_IGNORE_HTTP_CODES = [403]
 #HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
 
 # Set settings whose default value is deprecated to a future-proof value
-REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
-TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
-FEED_EXPORT_ENCODING = "utf-8"
+#REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
+#TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
+#FEED_EXPORT_ENCODING = "utf-8"
 
 LOG_LEVEL = 'DEBUG'
-DOWNLOAD_TIMEOUT = 60  # 增大超时时间，单位为秒
+# DOWNLOAD_TIMEOUT = 60  # 增大超时时间，单位为秒
+
+# 禁用重试机制（如果需要）
+# RETRY_ENABLED = False
 
 # 最大重试次数，默认是 2，可以根据需求调整
-RETRY_TIMES = 5
-
-# 间隔时间（单位：秒），控制连续重试的间隔，防止对服务器压力过大
-RETRY_WAIT_TIME = 5
+# RETRY_TIMES = 5

@@ -4,7 +4,7 @@
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
 from wallpaper_crawler.request_manager import RequestManager, RequestPreiod
-import wallpaper_crawler.spiders.rare_gallery_setting as rare_gallery_setting
+import wallpaper_crawler.rare_gallery_setting as rare_gallery_setting
 
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
@@ -22,6 +22,8 @@ from selenium.webdriver.common.by import By
 import time
 import pycurl
 from io import BytesIO
+
+import subprocess
 
 class WallpaperCrawlerPipeline(ImagesPipeline):
     # def process_item(self, item, spider):
@@ -153,6 +155,7 @@ class PyCurlImagePipeline:
         self.request_manager = RequestManager(file_path=rare_gallery_setting.REQUEST_STORE)
 
     def process_item(self, item, spider):
+        print("===== process_item", item)
         for image_url in item.get('image_urls', []):
             if not image_url:
                 continue
@@ -198,3 +201,40 @@ class PyCurlImagePipeline:
                 self.request_manager.done_url(RequestPreiod.IMAGE, image_url)
             else:
                 raise DropItem(f"Failed to download image: {image_url}, Status code: {status_code}")
+
+
+class SubProcCurlImagePipeline:
+
+    def __init__(self):
+        self.request_manager = RequestManager(file_path=rare_gallery_setting.REQUEST_STORE)
+
+    def process_item(self, item, spider):
+        spider.log(f"===== process_item {item}")
+        for image_url in item.get('image_urls', []):
+            if not image_url:
+                continue
+            for _ in range(5):
+                try:
+                    self.download(image_url, spider)
+                except Exception as e:
+                    print(f'[retry]download error: {e}')
+                    time.sleep(5)
+                    continue
+                break
+        return item
+
+    def download(self, image_url, spider):
+        try:
+            image_path = f"{rare_gallery_setting.IMAGES_STORE}/{image_url.split('/')[-1]}"
+            # Popen 打开 curl 进程
+            process = subprocess.Popen(['curl', '-o', image_path, image_url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # 实时获取输出
+            stdout, stderr = process.communicate()
+            
+            if process.returncode == 0:
+                spider.log(f"Image saved at {image_path}")
+                self.request_manager.done_url(RequestPreiod.IMAGE, image_url)
+            else:
+                raise DropItem(f"Failed to download image: {image_url}, erro info: {stderr.decode()}")
+        except Exception as e:
+            raise e
