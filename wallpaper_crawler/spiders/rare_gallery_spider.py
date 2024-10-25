@@ -11,13 +11,12 @@ import wallpaper_crawler.rare_gallery_setting as rare_gallery_setting
 class RareGallerySpiderSpider(scrapy.Spider):
     name = "rare_gallery_spider"
     allowed_domains = ["rare-gallery.com"]
-    start_urls = ["https://rare-gallery.com/xfsearch/alt/IU/"]
 
     def __init__(self, *args, **kwargs):
         super(scrapy.Spider, self).__init__(*args, **kwargs)
 
         self.driver = self._init_driver()
-        self.request_manager = RequestManager(file_path=rare_gallery_setting.REQUEST_STORE, start_urls=self.start_urls)
+        self.request_manager = RequestManager(file_path=rare_gallery_setting.REQUEST_STORE, start_urls=rare_gallery_setting.START_URLS)
 
     def _init_driver(self):
         service = Service(which('chromedriver'))
@@ -38,7 +37,7 @@ class RareGallerySpiderSpider(scrapy.Spider):
     def start_requests(self):
         for url in self.request_manager.get_urls_by_stage(RequestPreiod.INIT):
             # print(f"[start_requests] init {url}")
-            yield scrapy.Request(url=url, callback=self.parse)
+            yield scrapy.Request(url=url, callback=self.parse_list)
         for url in self.request_manager.get_urls_by_stage(RequestPreiod.DETAILS):
             # print(f"[start_requests] details {url}")
             yield scrapy.Request(url=url, callback=self.parse_detail)
@@ -46,8 +45,8 @@ class RareGallerySpiderSpider(scrapy.Spider):
             # print(f"[start_requests] image {url}")
             yield scrapy.Request(url=url, callback=self.parse_image)
 
-    def parse(self, response):
-        # print(f"==== [parse] {response}")
+    def parse_list(self, response):
+        # print(f"==== [parse_list] {response}")
 
         try:
             # 打开目标网站
@@ -59,16 +58,16 @@ class RareGallerySpiderSpider(scrapy.Spider):
         selenium_html = self.driver.page_source
         sel = Selector(text=selenium_html)
         divs = sel.css('div.wrap div.wrap-main div.cols div.main div.sect div.sect-content div#dle-content div.th-itemiph a.th-in')
-        # print("==== [parse] divs len", len(divs))
+        # print("==== [parse_list] divs len", len(divs))
 
         # 从每个div中提取具体的子元素，如img或者p标签
         detail_urls = (e.css('::attr(href)').get() for e in divs) # 提取图片链接
         detail_urls = [url for url in detail_urls if url]
         if not len(detail_urls):
-            # print(f"[parse_error] detail_urls is empty, url={response.url}")
+            print(f"[parse_list_error] detail_urls is empty, url={response.url}")
             return
 
-        # detail_urls = [detail_urls[0]] # for test
+        detail_urls = [detail_urls[0]] # for test
         self.request_manager.add_urls(RequestPreiod.DETAILS, detail_urls)
         self.request_manager.done_url(RequestPreiod.INIT, response.url)
         for url in detail_urls:

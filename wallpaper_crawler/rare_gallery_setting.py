@@ -1,5 +1,8 @@
 from pathlib import Path
 
+START_URLS = [
+    "https://rare-gallery.com/xfsearch/alt/IU/"
+]
 REQUEST_STORE = '/Users/sherlock/Project/wallpaper_crawler/.request/iu_iph_wallpaper_request.json'  # 请求信息保存路径
 IMAGES_STORE = '/Users/sherlock/Project/wallpaper_crawler/iu_iph_wallpaper'  # 图片保存的文件夹
 
