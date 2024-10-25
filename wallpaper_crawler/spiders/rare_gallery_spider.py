@@ -37,6 +37,9 @@ class RareGallerySpiderSpider(scrapy.Spider):
     def start_requests(self):
         for url in self.request_manager.get_urls_by_stage(RequestPreiod.INIT):
             # print(f"[start_requests] init {url}")
+            yield scrapy.Request(url=url, callback=self.parse_navigation)
+        for url in self.request_manager.get_urls_by_stage(RequestPreiod.NAVIGATION):
+            # print(f"[start_requests] list {url}")
             yield scrapy.Request(url=url, callback=self.parse_list)
         for url in self.request_manager.get_urls_by_stage(RequestPreiod.DETAILS):
             # print(f"[start_requests] details {url}")
@@ -44,6 +47,38 @@ class RareGallerySpiderSpider(scrapy.Spider):
         for url in self.request_manager.get_urls_by_stage(RequestPreiod.IMAGE):
             # print(f"[start_requests] image {url}")
             yield scrapy.Request(url=url, callback=self.parse_image)
+
+    def parse_navigation(self, response):
+        page_list = [response.url]
+        # print(f"==== [parse_navigation] {response}")
+
+        try:
+            # 打开目标网站
+            self.driver.get(response.url)
+        except Exception as e:
+            pass
+
+        # 使用 Scrapy Selector 将 Selenium 获取的页面内容转为 Scrapy 可解析的格式
+        selenium_html = self.driver.page_source
+        sel = Selector(text=selenium_html)
+        a_tags = sel.css('div.wrap div.wrap-main div.cols div.main div.sect div.sect-content div#dle-content div.bottom-nav div.pagi-nav div.navigation a')
+        # print("==== [parse_list] a_tags len", len(a_tags))
+        if len(a_tags):
+            last_tag = a_tags[-1]
+            href = last_tag.css("::attr(href)").get()  # 获取href属性
+            text = last_tag.css("::text").get()  # 获取标签文本
+            max_page = int(text)
+
+            # print(f"链接: {href}, 文本: {text} max_page: {max_page}")
+
+            for page in range(2, max_page+1):
+                page_url = f"{response.url}/page/{page}/"
+                page_list.append(page_url)
+        # print(f"page_list={page_list}")
+        self.request_manager.add_urls(RequestPreiod.NAVIGATION, page_list)
+        self.request_manager.done_url(RequestPreiod.INIT, response.url)
+        for url in page_list:
+            yield scrapy.Request(url=url, callback=self.parse_list)
 
     def parse_list(self, response):
         # print(f"==== [parse_list] {response}")
@@ -57,7 +92,7 @@ class RareGallerySpiderSpider(scrapy.Spider):
         # 使用 Scrapy Selector 将 Selenium 获取的页面内容转为 Scrapy 可解析的格式
         selenium_html = self.driver.page_source
         sel = Selector(text=selenium_html)
-        divs = sel.css('div.wrap div.wrap-main div.cols div.main div.sect div.sect-content div#dle-content div.th-itemiph a.th-in')
+        divs = sel.css('div.wrap div.wrap-main div.cols div.main div.sect div.sect-content div#dle-content div.th-item a.th-in')
         # print("==== [parse_list] divs len", len(divs))
 
         # 从每个div中提取具体的子元素，如img或者p标签
@@ -67,9 +102,9 @@ class RareGallerySpiderSpider(scrapy.Spider):
             print(f"[parse_list_error] detail_urls is empty, url={response.url}")
             return
 
-        detail_urls = [detail_urls[0]] # for test
+        # detail_urls = [detail_urls[0]] # for test
         self.request_manager.add_urls(RequestPreiod.DETAILS, detail_urls)
-        self.request_manager.done_url(RequestPreiod.INIT, response.url)
+        self.request_manager.done_url(RequestPreiod.NAVIGATION, response.url)
         for url in detail_urls:
             yield scrapy.Request(url=url, callback=self.parse_detail)
 

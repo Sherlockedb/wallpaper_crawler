@@ -9,6 +9,7 @@ class RequestStatus(Enum):
 
 class RequestPreiod(Enum):
     INIT = 'init'
+    NAVIGATION = 'navigation'
     DETAILS = 'details'
     IMAGE = 'image'
     # COMPLETED = 'completed'
