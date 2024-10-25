@@ -85,6 +85,10 @@ class WallpaperCrawlerDownloaderMiddleware:
     def __init__(self):
         self.driver = self._init_driver()
 
+    def __del__(self):
+        if self.driver:
+            self.driver.quit()
+
     def _init_driver(self):
         service = Service(which('chromedriver'))
         # 设置 Chrome 无头模式
@@ -139,17 +143,17 @@ class WallpaperCrawlerDownloaderMiddleware:
                 # 获取 HTTP 状态码
                 status_code = c.getinfo(c.RESPONSE_CODE)
             except pycurl.error as e:
-                print(f'An error occurred: {e}')
+                pass
             finally:
                 # 关闭 pycurl 对象
                 c.close()
 
             if status_code == 200:
-                spider.log(f"Success to download image: {image_url}, Status code: {status_code}")
+                spider.logger.debug(f"Success to download image: {image_url}, Status code: {status_code}")
                 response = HtmlResponse(url=image_url, body=buffer.getvalue(), status=200, encoding='utf-8')
                 return response
             else:
-                spider.log(f"Failed to download image: {image_url}, Status code: {status_code}")
+                spider.logger.error(f"Failed to download image: {image_url}, Status code: {status_code}")
                 if retry:
                     time.sleep(5)
                     return self._download_image(image_url, spider, retry-1)
@@ -166,7 +170,7 @@ class WallpaperCrawlerDownloaderMiddleware:
         # - or raise IgnoreRequest: process_exception() methods of
         #   installed downloader middleware will be called
 
-        spider.logger.info(f"==== process_request {request}")
+        spider.logger.debug(f"==== process_request {request}")
         preiod = request.meta.get('preiod')
         if preiod in [RequestPreiod.INIT, RequestPreiod.NAVIGATION, RequestPreiod.DETAILS]:
             return self._download_html(request, spider, retry=5)

@@ -112,7 +112,8 @@ HTTPCACHE_IGNORE_HTTP_CODES = [403]
 #TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 #FEED_EXPORT_ENCODING = "utf-8"
 
-LOG_LEVEL = 'DEBUG'
+LOG_LEVEL = 'INFO'
+LOG_FORMAT = '%(asctime)s [%(filename)s:%(lineno)d] %(levelname)s: %(message)s'
 # DOWNLOAD_TIMEOUT = 60  # 增大超时时间，单位为秒
 
 # 禁用重试机制（如果需要）

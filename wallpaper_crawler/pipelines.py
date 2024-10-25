@@ -13,12 +13,12 @@ class PyCurlImagePipeline:
         self.request_manager = RequestManager(file_path=rare_gallery_setting.REQUEST_STORE)
 
     def process_item(self, item, spider):
-        print("===== process_item")
+        spider.logger.debug("===== process_item")
 
         image_url = item['image_src']
         image_path = f"{rare_gallery_setting.IMAGES_STORE}/{image_url.split('/')[-1]}"
         with open(image_path, 'wb') as f:
             f.write(item['image'])
-        spider.log(f"Image saved at {image_path}")
+        spider.logger.info(f"Image {image_url} saved at {image_path}")
         self.request_manager.done_url(RequestPreiod.IMAGE, image_url)
 

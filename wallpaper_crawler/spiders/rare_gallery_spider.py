@@ -17,16 +17,16 @@ class RareGallerySpiderSpider(scrapy.Spider):
     # 定义 Scrapy 的起始请求
     def start_requests(self):
         for url in self.request_manager.get_urls_by_stage(RequestPreiod.INIT):
-            # print(f"[start_requests] init {url}")
+            # self.logger.debug(f"[start_requests] init {url}")
             yield scrapy.Request(url=url, callback=self.parse_navigation, meta={"preiod": RequestPreiod.INIT})
         for url in self.request_manager.get_urls_by_stage(RequestPreiod.NAVIGATION):
-            # print(f"[start_requests] list {url}")
+            # self.logger.debug(f"[start_requests] list {url}")
             yield scrapy.Request(url=url, callback=self.parse_list, meta={"preiod": RequestPreiod.NAVIGATION})
         for url in self.request_manager.get_urls_by_stage(RequestPreiod.DETAILS):
-            # print(f"[start_requests] details {url}")
+            # self.logger.debug(f"[start_requests] details {url}")
             yield scrapy.Request(url=url, callback=self.parse_detail, meta={"preiod": RequestPreiod.DETAILS})
         for url in self.request_manager.get_urls_by_stage(RequestPreiod.IMAGE):
-            # print(f"[start_requests] image {url}")
+            # self.logger.debug(f"[start_requests] image {url}")
             yield scrapy.Request(url=url, callback=self.parse_image, meta={"preiod": RequestPreiod.IMAGE})
 
 
@@ -34,34 +34,34 @@ class RareGallerySpiderSpider(scrapy.Spider):
         page_list = [response.url]
         sel = Selector(response)
         a_tags = sel.css('div.wrap div.wrap-main div.cols div.main div.sect div.sect-content div#dle-content div.bottom-nav div.pagi-nav div.navigation a')
-        print("==== [parse_list] a_tags len", len(a_tags))
+        self.logger.debug("a_tags len", len(a_tags))
         if len(a_tags):
             last_tag = a_tags[-1]
             href = last_tag.css("::attr(href)").get()  # 获取href属性
             text = last_tag.css("::text").get()  # 获取标签文本
             max_page = int(text)
-            # print(f"链接: {href}, 文本: {text} max_page: {max_page}")
+            # self.logger.debug(f"链接: {href}, 文本: {text} max_page: {max_page}")
 
             for page in range(2, max_page+1):
                 page_url = f"{response.url}/page/{page}/"
                 page_list.append(page_url)
-        # print(f"page_list={page_list}")
+        # self.logger.debug(f"page_list={page_list}")
         self.request_manager.add_urls(RequestPreiod.NAVIGATION, page_list)
         self.request_manager.done_url(RequestPreiod.INIT, response.url)
         for url in page_list:
             yield scrapy.Request(url=url, callback=self.parse_list, meta={"preiod": RequestPreiod.NAVIGATION})
 
     def parse_list(self, response):
-        # print(f"==== [parse_list] {response}")
+        # self.logger.debug(f"{response}")
         sel = Selector(response)
         divs = sel.css('div.wrap div.wrap-main div.cols div.main div.sect div.sect-content div#dle-content div.th-item a.th-in')
-        # print("==== [parse_list] divs len", len(divs))
+        # self.logger.debug("divs len", len(divs))
 
         # 从每个div中提取具体的子元素，如img或者p标签
         detail_urls = (e.css('::attr(href)').get() for e in divs) # 提取图片链接
         detail_urls = [url for url in detail_urls if url]
         if not len(detail_urls):
-            print(f"[parse_list_error] detail_urls is empty, url={response.url}")
+            self.logger.error(f"[parse_list_error] detail_urls is empty, url={response.url}")
             return
 
         # detail_urls = [detail_urls[0]] # for test
@@ -72,15 +72,15 @@ class RareGallerySpiderSpider(scrapy.Spider):
 
 
     def parse_detail(self, response):
-        # print(f"==== [parse_detail] {response}")
+        # self.logger.debug(f"{response}")
         sel = Selector(response)
         divs = sel.css('div.wrap div.wrap-main div.cols div.main div.clearfix div#dle-content div.full-page div.vpm div.vpm-left div.ftabs input[value="OPEN"]')
-        # print("==== [parse_detail] divs len", len(divs))
+        # self.logger.debug("divs len", len(divs))
         # 遍历找到的 <input> 元素，获取其父级的 <a> 标签
         image_urls = (ele.xpath('..').css('::attr(href)').get() for ele in divs)
         image_urls = [response.urljoin(url) for url in image_urls if url]
         if not len(image_urls):
-            print(f"[parse_detail_error] image_urls is empty, url={response.url}")
+            self.logger.error(f"[parse_detail_error] image_urls is empty, url={response.url}")
             return
 
         self.request_manager.add_urls(RequestPreiod.IMAGE, image_urls)
@@ -88,8 +88,7 @@ class RareGallerySpiderSpider(scrapy.Spider):
         yield scrapy.Request(url=response.url, callback=self.parse_image, meta={"preiod": RequestPreiod.IMAGE})
 
     def parse_image(self, response):
-        print(f"==== [parse_image] url {response.url} {response.status}")
-        print(f"body", type(response.body))
+        self.logger.debug(f"==== [parse_image] url {response.url} {response.status}")
         if response.status != 200:
             return
         item = RareGalleryItem()
