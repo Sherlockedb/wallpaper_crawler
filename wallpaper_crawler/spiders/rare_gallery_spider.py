@@ -34,7 +34,7 @@ class RareGallerySpiderSpider(scrapy.Spider):
         page_list = [response.url]
         sel = Selector(response)
         a_tags = sel.css('div.wrap div.wrap-main div.cols div.main div.sect div.sect-content div#dle-content div.bottom-nav div.pagi-nav div.navigation a')
-        self.logger.debug("a_tags len", len(a_tags))
+        self.logger.debug(f"a_tags len={len(a_tags)}")
         if len(a_tags):
             last_tag = a_tags[-1]
             href = last_tag.css("::attr(href)").get()  # 获取href属性
@@ -55,7 +55,7 @@ class RareGallerySpiderSpider(scrapy.Spider):
         # self.logger.debug(f"{response}")
         sel = Selector(response)
         divs = sel.css('div.wrap div.wrap-main div.cols div.main div.sect div.sect-content div#dle-content div.th-item a.th-in')
-        # self.logger.debug("divs len", len(divs))
+        # self.logger.debug(f"divs len={len(divs)}")
 
         # 从每个div中提取具体的子元素，如img或者p标签
         detail_urls = (e.css('::attr(href)').get() for e in divs) # 提取图片链接
@@ -76,7 +76,7 @@ class RareGallerySpiderSpider(scrapy.Spider):
         # self.logger.debug(f"{response}")
         sel = Selector(response)
         divs = sel.css('div.wrap div.wrap-main div.cols div.main div.clearfix div#dle-content div.full-page div.vpm div.vpm-left div.ftabs input[value="OPEN"]')
-        # self.logger.debug("divs len", len(divs))
+        # self.logger.debug(f"divs len={len(divs)}")
         # 遍历找到的 <input> 元素，获取其父级的 <a> 标签
         image_urls = (ele.xpath('..').css('::attr(href)').get() for ele in divs)
         image_urls = [response.urljoin(url) for url in image_urls if url]

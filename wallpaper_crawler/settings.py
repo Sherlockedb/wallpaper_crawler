@@ -116,3 +116,6 @@ LOG_FORMAT = '%(asctime)s [%(filename)s:%(lineno)d] %(levelname)s: %(message)s'
 
 # 最大重试次数，默认是 2，可以根据需求调整
 # RETRY_TIMES = 5
+
+# 禁用过滤重复请求
+DUPEFILTER_CLASS = 'scrapy.dupefilters.BaseDupeFilter'
